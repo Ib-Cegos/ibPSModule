@@ -62,9 +62,9 @@ function optimize-ibComputer {
     $global:DebugPreference = $oldDebug
     write-ibLog 'Mise à jour du module.' -warning
     try { Remove-Module -Name ib -Force -ErrorAction stop}
-    catch { write-ibLog 'Erreur lors de la libération du module actuel pour mise à jour.' -command 'Remove-Module -Name ib2 -Force' -message $error[0].Exception -error }
+    catch { write-ibLog 'Erreur lors de la libération du module actuel pour mise à jour.' -command 'Remove-Module -Name ib -Force' -message $error[0].Exception -error }
     try { Update-Module -Name ib -Force -ErrorAction stop}
-    catch { write-ibLog 'Erreur lors de la mise à jour du module.' -command 'Update-Module -Name ib2 -Force' -message $error[0].Exception -error }
+    catch { write-ibLog 'Erreur lors de la mise à jour du module.' -command 'Update-Module -Name ib -Force' -message $error[0].Exception -error }
     Import-Module -Name ib}
   $global:DebugPreference = $oldDebug
   get-ibComputerInfo -force
@@ -369,7 +369,7 @@ function invoke-ibMute {
       $getCred = $true }
     $savedTrustedHosts = set-ibRemoteManagement
     Write-Debug 'Récupération de l''executable svcl.exe'
-    $svclFile = (get-module -listAvailable ib2).path
+    $svclFile = (get-module -listAvailable ib).path
     $svclFile = $svclFile.substring(0,$svclFile.LastIndexOf('\')) + '\svcl.exe'
     Write-Debug 'Dépot de l''outil svcl et lancement sur les machines du sous-réseau.'
     foreach ($computer in get-ibComputers) {
