@@ -16,7 +16,7 @@ jobs:
           NUGET_KEY: ${{ secrets.PSGALLERY_NUGET_KEY }}
         shell: pwsh
         run: |
-          $moduleVersion=(import-powershellDataFile -Path ./ib.psd1).ModuleVersion
+          $moduleVersion=(import-powershellDataFile -Path ./ib/ib.psd1).ModuleVersion
           $PSDefaultParameterValues['*:Encoding']='utf8BOM'
           if ((Find-Module ib).version -ne $moduleVersion) {
               #Nouvelle version : lancer la publication
