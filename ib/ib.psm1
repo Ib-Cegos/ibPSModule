@@ -47,6 +47,7 @@ function get-ibLog {
       $eventContent|Add-Member -NotePropertyName Date -NotePropertyValue $event.TimeGenerated
       if (($id -eq -1 -or ($event.eventId -eq $id)) -and ($session -eq '' -or $eventContent.session -eq $session)) {
         $eventResult += $eventContent } } }
+  'a la con'
   return ($eventResult) }
 
 function optimize-ibComputer {
@@ -58,14 +59,14 @@ function optimize-ibComputer {
   Write-Debug 'Vérification de la version du module.'
   $oldDebug = $global:DebugPreference
   $global:DebugPreference = 'silentlyContinue'
-  if ( [version](Find-Module -Name ib).Version -gt (Get-Module -Name ib -ListAvailable|sort-object -property Version | select-object -Last 1).Version ) {
+  if ( [version](Find-Module -Name ib2).Version -gt (Get-Module -Name ib2 -ListAvailable|sort-object -property Version | select-object -Last 1).Version ) {
     $global:DebugPreference = $oldDebug
     write-ibLog 'Mise à jour du module.' -warning
-    try { Remove-Module -Name ib -Force -ErrorAction stop}
-    catch { write-ibLog 'Erreur lors de la libération du module actuel pour mise à jour.' -command 'Remove-Module -Name ib -Force' -message $error[0].Exception -error }
-    try { Update-Module -Name ib -Force -ErrorAction stop}
-    catch { write-ibLog 'Erreur lors de la mise à jour du module.' -command 'Update-Module -Name ib -Force' -message $error[0].Exception -error }
-    Import-Module -Name ib}
+    try { Remove-Module -Name ib2 -Force -ErrorAction stop}
+    catch { write-ibLog -id 2 -command 'Remove-Module -Name ib2 -Force' -message $error[0].Exception -error }
+    try { Update-Module -Name ib2 -Force -ErrorAction stop}
+    catch { write-ibLog -id 2 -command 'Update-Module -Name ib2 -Force' -message $error[0].Exception -error }
+    Import-Module -Name ib2}
   $global:DebugPreference = $oldDebug
   get-ibComputerInfo -force
   if ($ibComputerInfo.currentSession) { 
@@ -228,6 +229,8 @@ function new-ibTeamsShortcut {
     write-ibLog -id 1 -command 'Réunion Teams' -message $meetingUrl
     New-Item -Path "$env:PUBLIC\Desktop" -Name 'Réunion Teams.url' -ItemType File -Value "[InternetShortcut]`nURL=$meetingUrl" -Force|out-null}}
 
+
+
 function set-ibRemoteManagement {
   <#
   .DESCRIPTION
@@ -369,7 +372,7 @@ function invoke-ibMute {
       $getCred = $true }
     $savedTrustedHosts = set-ibRemoteManagement
     Write-Debug 'Récupération de l''executable svcl.exe'
-    $svclFile = (get-module -listAvailable ib).path
+    $svclFile = (get-module -listAvailable ib2).path
     $svclFile = $svclFile.substring(0,$svclFile.LastIndexOf('\')) + '\svcl.exe'
     Write-Debug 'Dépot de l''outil svcl et lancement sur les machines du sous-réseau.'
     foreach ($computer in get-ibComputers) {
