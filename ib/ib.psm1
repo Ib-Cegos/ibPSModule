@@ -8,15 +8,14 @@ $eventSource = 'ibPowershellModule'
 function write-ibLog {
   param (
     [int32]$id = 0, [parameter(Position = 0)][string]$message, [string]$session = '', [string]$command, [switch]$warning, [switch]$error, [switch]$out, [switch]$stop )
-  if (-not ([System.Diagnostics.EventLog]::SourceExists($eventSource))) {
-    Write-Warning "Création de la source d'évènements '$eventSource' et attente de sa disponibilité."
-    [System.Diagnostics.EventLog]::CreateEventSource($eventSource,'Application') }
-  while (-not [System.Diagnostics.EventLog]::SourceExists($eventSource)) { Start-Sleep -Seconds 10 }
   if ($warning) { $eventId = New-Object System.Diagnostics.EventInstance($id,1,2) }
   elseif ($error) { $eventId = New-Object System.Diagnostics.EventInstance($id,1,1) }
   else { $eventId = New-Object System.Diagnostics.EventInstance($id,1) }
-  $eventObject = New-Object System.Diagnostics.EventLog
-  $eventObject.Log = 'Application'; $eventObject.Source = $eventSource
+  $eventObject = New-Object -TypeName System.Diagnostics.EventLog -Property @{Log = 'Application'; Source = $eventSource}
+  if ($ibCommandLaunch -ne $PSCmdlet.MyInvocation.HistoryId) {
+    $commandTrace = Get-PSCallStack|Where-Object {$_.Command -notlike '*ScriptBlock*' -and $_.InvocationInfo.CommandOrigin -like 'Runspace'}
+    $eventObject.WriteEvent((New-Object System.Diagnostics.EventInstance(0,1)),@("Lancement de la commande '$($commandTrace.Command)'",$commandTrace.Arguments,$PSVersionTable.PSVersion,$PSVersionTable.PSEdition))
+    $global:ibCommandLaunch = $PSCmdlet.MyInvocation.HistoryId }
   switch ($id) {
     1 { #La cible du raccourci est passée dans $message, son nom dans $command
         $eventContent = @{title = 'Création d''un raccourci sur le bureau.'; name = $command; shortcut = $message } }
@@ -28,7 +27,8 @@ function write-ibLog {
       else {$eventContent = @{title = $message } }}}
     if ($session -ne '') { $eventContent.add('session',$session) }
     $eventObject.WriteEvent($eventId,@($eventContent.title,(ConvertTo-Json -InputObject $eventContent)))
-    if ($error) { Write-Error -Message $eventContent.title -ErrorId $id }
+    if ($error) {
+      if ($id -eq 2) { write-error -Message $message } else { Write-Error -Message $eventContent.title -ErrorId $id }}
     elseif ($warning) { Write-Warning -Message $eventContent.title }
     elseif ($out) { Write-Output -Message $eventContent.title }
     else { Write-debug $eventContent.title }
@@ -59,14 +59,14 @@ function optimize-ibComputer {
   Write-Debug 'Vérification de la version du module.'
   $oldDebug = $global:DebugPreference
   $global:DebugPreference = 'silentlyContinue'
-  if ( [version](Find-Module -Name ib2).Version -gt (Get-Module -Name ib2 -ListAvailable|sort-object -property Version | select-object -Last 1).Version ) {
+  if ( [version](Find-Module -Name ib).Version -gt (Get-Module -Name ib -ListAvailable|sort-object -property Version | select-object -Last 1).Version ) {
     $global:DebugPreference = $oldDebug
     write-ibLog 'Mise à jour du module.' -warning
-    try { Remove-Module -Name ib2 -Force -ErrorAction stop}
-    catch { write-ibLog -id 2 -command 'Remove-Module -Name ib2 -Force' -message $error[0].Exception -error }
-    try { Update-Module -Name ib2 -Force -ErrorAction stop}
-    catch { write-ibLog -id 2 -command 'Update-Module -Name ib2 -Force' -message $error[0].Exception -error }
-    Import-Module -Name ib2}
+    try { Remove-Module -Name ib -Force -ErrorAction stop}
+    catch { write-ibLog -id 2 -command 'Remove-Module -Name ib -Force' -message $_.Exception.Message -error }
+    try { Update-Module -Name ib -Force -ErrorAction stop}
+    catch { write-ibLog -id 2 -command 'Update-Module -Name ib -Force' -message $_.Exception.Message -error }
+    Import-Module -Name ib}
   $global:DebugPreference = $oldDebug
   get-ibComputerInfo -force
   if ($ibComputerInfo.currentSession) { 
@@ -229,8 +229,6 @@ function new-ibTeamsShortcut {
     write-ibLog -id 1 -command 'Réunion Teams' -message $meetingUrl
     New-Item -Path "$env:PUBLIC\Desktop" -Name 'Réunion Teams.url' -ItemType File -Value "[InternetShortcut]`nURL=$meetingUrl" -Force|out-null}}
 
-
-
 function set-ibRemoteManagement {
   <#
   .DESCRIPTION
@@ -372,7 +370,7 @@ function invoke-ibMute {
       $getCred = $true }
     $savedTrustedHosts = set-ibRemoteManagement
     Write-Debug 'Récupération de l''executable svcl.exe'
-    $svclFile = (get-module -listAvailable ib2).path
+    $svclFile = (get-module -listAvailable ib).path
     $svclFile = $svclFile.substring(0,$svclFile.LastIndexOf('\')) + '\svcl.exe'
     Write-Debug 'Dépot de l''outil svcl et lancement sur les machines du sous-réseau.'
     foreach ($computer in get-ibComputers) {
