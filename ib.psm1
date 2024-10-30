@@ -58,14 +58,14 @@ function optimize-ibComputer {
   Write-Debug 'Vérification de la version du module.'
   $oldDebug = $global:DebugPreference
   $global:DebugPreference = 'silentlyContinue'
-  if ( [version](Find-Module -Name ib2).Version -gt (Get-Module -Name ib2 -ListAvailable|sort-object -property Version | select-object -Last 1).Version ) {
+  if ( [version](Find-Module -Name ib).Version -gt (Get-Module -Name ib -ListAvailable|sort-object -property Version | select-object -Last 1).Version ) {
     $global:DebugPreference = $oldDebug
     write-ibLog 'Mise à jour du module.' -warning
-    try { Remove-Module -Name ib2 -Force -ErrorAction stop}
+    try { Remove-Module -Name ib -Force -ErrorAction stop}
     catch { write-ibLog 'Erreur lors de la libération du module actuel pour mise à jour.' -command 'Remove-Module -Name ib2 -Force' -message $error[0].Exception -error }
-    try { Update-Module -Name ib2 -Force -ErrorAction stop}
+    try { Update-Module -Name ib -Force -ErrorAction stop}
     catch { write-ibLog 'Erreur lors de la mise à jour du module.' -command 'Update-Module -Name ib2 -Force' -message $error[0].Exception -error }
-    Import-Module -Name ib2}
+    Import-Module -Name ib}
   $global:DebugPreference = $oldDebug
   get-ibComputerInfo -force
   if ($ibComputerInfo.currentSession) { 
