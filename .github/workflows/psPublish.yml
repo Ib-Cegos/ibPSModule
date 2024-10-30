@@ -20,6 +20,6 @@ jobs:
           $PSDefaultParameterValues['*:Encoding']='utf8BOM'
           if ((Find-Module ib).version -ne $moduleVersion) {
               #Nouvelle version : lancer la publication
-              Publish-Module -Path ./ -NuGetApiKey $env:NUGET_KEY -tag 'PSEdition_Desktop','PSEdition_Core','Windows' -iconUri 'https://raw.githubusercontent.com/Ib-Cegos/ibPSModule/refs/heads/main/logo-ib.png' -Verbose
+              Publish-Module -Path ./ib -NuGetApiKey $env:NUGET_KEY -tag 'PSEdition_Desktop','PSEdition_Core','Windows' -iconUri 'https://raw.githubusercontent.com/Ib-Cegos/ibPSModule/refs/heads/main/logo-ib.png' -Verbose
               write-host "::notice title=Publication réussie::Publication de la version $moduleVersion vers la gallerie Powershell"}
           else {write-host "::warning title=Version identique::La version n'a pas changé, pas de publication"}
