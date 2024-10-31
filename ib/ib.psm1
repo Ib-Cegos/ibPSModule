@@ -56,7 +56,10 @@ function optimize-ibComputer {
   <#
   .DESCRIPTION
   Cette commande est faite pour etre lancée au démarrage de la machine de formation et optimiser son fonctionnement pour la formation en cours.
+    .PARAMETER force
+  Si ce paramètre est utilisé, les commande de type 'oneTimeCommand' seront jouées, même si déjà trouvées dans les logs pour la session de formation de la machine
   #>
+  param ([switch]$Force)
   wait-ibNetwork
   Write-Debug 'Vérification de la version du module.'
   $oldDebug = $global:DebugPreference
@@ -86,11 +89,23 @@ function optimize-ibComputer {
       write-ibLog -id 1 -command $shortcut.name -message $shortcut.url -session $sessionToSetup
       New-Item -Path "$env:PUBLIC\Desktop" -Name "$($shortcut.name).url" -ItemType File -Value "[InternetShortcut]`nURL=$($shortcut.url)" -Force|Out-Null}
     ForEach ($command in $global:ibComputerInfo.commands) {
-      Write-Debug "lancement de la commande '$command'."
       try { 
         Invoke-Expression $command -OutVariable commandResult | Out-Null
-        write-ibLog -id 2 -command $command -message (out-string -InputObject $commandResult) }
-      catch { write-ibLog -id 2 -command $command -message $_.Exception.Message -error }}}}
+        write-ibLog -id 2 -command $command -message (out-string -InputObject $commandResult) -session $sessionToSetup }
+      catch { write-ibLog -id 2 -command $command -message $_.Exception.Message -error }}
+    ForEach ($command in $global:ibComputerInfo.oneTimeCommands) {
+      $runCommand = $true
+      foreach ($oldCommand in (get-ibLog -id 2 -session $sessionToSetup)) {
+        if ($oldCommand.command -eq $command) {
+          write-ibLog "La commande '$command' a déjà été lançée (date de référence : $($oldCommand.Date))." -warning
+          $runCommand = $false }}
+      if ($runCommand -or $Force) {
+        try {
+          Invoke-Expression $command -OutVariable commandResult | Out-Null
+          write-ibLog -id 2 -command $command -message (out-string -InputObject $commandResult) -session $sessionToSetup }
+        catch { write-ibLog -id 2 -command $command -message $_.Exception.Message -error }}}
+
+      }}
 
 function get-ibPassword {
   param ([parameter(Mandatory=$true)][string]$password)
@@ -131,7 +146,6 @@ function get-ibComputersInfo {
         if ($session.Value.salle -ne $null -and $global:ibComputersInfo.salles.($session.Value.salle) -eq $null) {
           write-debug "Ajout de la salle '$($session.value.salle)' pour la session '$($session.Name)'."
           $global:ibComputersInfo.Salles|add-member -NotePropertyName $session.Value.salle -NotePropertyValue @{sessions=@($session.Name)}}
-          #$global:ibSallesInfo.add($session.Value.salle, @($session.Name))}
         elseif ($session.Value.salle -ne $null) {
           write-debug "  Ajout de la session '$($session.Name)' à la salle '$($session.value.salle)'."
           if ($global:ibComputersInfo.Salles.($session.Value.salle).sessions -eq $null) { $global:ibComputersInfo.Salles.($session.Value.salle)|Add-Member -NotePropertyName sessions -NotePropertyValue @($session.Name)}
@@ -171,7 +185,7 @@ function get-ibComputerInfo {
       if ($salle=$global:ibComputersInfo.Salles.$salleNumber) {
         write-debug '  Salle trouvée dans la référence ib.'
         add-ibComputerInfo -Names teamsMeeting -Value $salle
-        add-ibComputerInfo -Names shortcuts,commands,sessions -Value $salle -Add }}
+        add-ibComputerInfo -Names shortcuts,commands,oneTimeCommands,sessions -Value $salle -Add }}
       else { write-ibLog "  Salle '($($global:ibComputerInfo.salle))' trouvée sur la machine mais pas dans la référence." -warning}
     $currentDate = (Get-Date).ToString('yyyyMMdd')
     $nextSession = @{'name'='init';'date'='99999999'}
@@ -188,24 +202,24 @@ function get-ibComputerInfo {
     if ($currentSession -ne $null) {
       write-ibLog "Inscription des informations de la session en cours ($currentSession)." -session $currentSession
       add-ibComputerInfo -Names stage,salle,formateur,debut,fin,teamsMeeting -Value $ibSessionsInfo.Sessions.$currentSession
-      add-ibComputerInfo -Names shortcuts,commands -Value $ibSessionsInfo.Sessions.$currentSession -Add
+      add-ibComputerInfo -Names shortcuts,commands,oneTimeCommands -Value $ibSessionsInfo.Sessions.$currentSession -Add
       $global:ibComputerInfo|Add-Member -NotePropertyName currentSession -NotePropertyValue $currentSession }
     elseif ($nextSession.name -ne 'init') {
       Write-ibLog "Inscription des informations de la prochaine session ($($nextSession.name))." -session $nextSession.name
       add-ibComputerInfo -Names stage,salle,formateur,debut,fin,teamsMeeting -Value $ibSessionsInfo.Sessions.($nextSession.name)
-      add-ibComputerInfo -Names shortcuts,commands -Value $ibSessionsInfo.Sessions.($nextSession.name) -Add
+      add-ibComputerInfo -Names shortcuts,commands,oneTimeCommands -Value $ibSessionsInfo.Sessions.($nextSession.name) -Add
       $global:ibComputerInfo|Add-Member -NotePropertyName nextSession -NotePropertyValue $nextSession.name}
     if ($formateurTRG = $global:ibComputerInfo.formateur) {
       Write-Debug '  Formateur trouvé sur la machine.'
       if ($formateur = $global:ibComputersInfo.Formateurs.$formateurTRG) {
         write-debug '  Formateur trouvé dans la référence ib.'
-        add-ibComputerInfo -Names shortcuts,commands -value $formateur -Add }
+        add-ibComputerInfo -Names shortcuts,commands,oneTimeCommands -value $formateur -Add }
       else { write-ibLog "  Formateur '($($global:ibComputerInfo.formateur))' trouvé sur la machine mais pas dans la référence." -warning}}
     if ($stageRef = $global:ibComputerInfo.stage) {
       Write-Debug '  Stage trouvé sur les informations de machine.'
       if ($stage = $global:ibComputersInfo.Stages.$stageRef) {
         write-debug '  Stage trouvé dans la référence ib.'
-        add-ibComputerInfo -Names shortcuts,commands -value $stage -Add }
+        add-ibComputerInfo -Names shortcuts,commands,oneTimeCommands -value $stage -Add }
       else { write-ibLog "  Stage '($($global:ibComputerInfo.stage))' trouvé sur la machine mais pas dans la référence." -warning}
         }}
 else { write-ibLog "Numéro de série '$serialNumber' introuvable dans le fichier de références." -error -stop}}
