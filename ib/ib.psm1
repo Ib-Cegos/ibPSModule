@@ -14,7 +14,8 @@ function write-ibLog {
   $eventObject = New-Object -TypeName System.Diagnostics.EventLog -Property @{Log = 'Application'; Source = $eventSource}
   if ($ibCommandLaunch -ne $PSCmdlet.MyInvocation.HistoryId) {
     $commandTrace = Get-PSCallStack|Where-Object {$_.Command -notlike '*ScriptBlock*' -and $_.InvocationInfo.CommandOrigin -like 'Runspace'}
-    $eventObject.WriteEvent((New-Object System.Diagnostics.EventInstance(0,1)),@("Lancement de la commande '$($commandTrace.Command)'",$commandTrace.Arguments,$PSVersionTable.PSVersion,$PSVersionTable.PSEdition))
+    $commandTable=@("Lancement de la commande '$($commandTrace.Command)'","Arguments : $($commandTrace.Arguments)","Version du module ib : $((Get-Module -Name ib).Version)","Version Powershell : $($PSVersionTable.PSVersion)","Edition Powershell : $($PSVersionTable.PSEdition)")
+    $eventObject.WriteEvent((New-Object System.Diagnostics.EventInstance(4,1)),$commandTable)
     $global:ibCommandLaunch = $PSCmdlet.MyInvocation.HistoryId }
   switch ($id) {
     1 { #La cible du raccourci est passée dans $message, son nom dans $command
@@ -42,12 +43,13 @@ function get-ibLog {
   $eventObject.Source = $eventSource
   $eventResult = @()
   foreach ($event in $eventObject.Entries) {
-    if ($event.Source -eq $eventSource) {
-      $eventContent = ($event.replacementStrings[1]|ConvertFrom-Json)
-      $eventContent|Add-Member -NotePropertyName Date -NotePropertyValue $event.TimeGenerated
+    if ($event.Source -eq $eventSource -and $event.replacementStrings.count -gt 1) {
+      if ($event.eventId -eq 4) { $eventContent=New-Object -TypeName System.Object 
+        $eventContent|Add-Member -NotePropertyName Title -NotePropertyValue $event.replacementStrings[0] }
+      else { $eventContent = ($event.replacementStrings[1]|ConvertFrom-Json) }
+      $eventContent|Add-Member -NotePropertyName Date -NotePropertyValue $event.TimeGenerated.Tostring('yyyyMMdd')
       if (($id -eq -1 -or ($event.eventId -eq $id)) -and ($session -eq '' -or $eventContent.session -eq $session)) {
         $eventResult += $eventContent } } }
-  'a la con'
   return ($eventResult) }
 
 function optimize-ibComputer {
@@ -86,9 +88,9 @@ function optimize-ibComputer {
     ForEach ($command in $global:ibComputerInfo.commands) {
       Write-Debug "lancement de la commande '$command'."
       try { 
-        Invoke-Expression $command |Tee-Object -Variable $commandResult
-        write-ibLog -id 2 -command $command -message $commandResult }
-      catch { write-ibLog -id 2 -command $command -message $error[0].Exception -error }}}}
+        Invoke-Expression $command -OutVariable commandResult | Out-Null
+        write-ibLog -id 2 -command $command -message (out-string -InputObject $commandResult) }
+      catch { write-ibLog -id 2 -command $command -message $_.Exception.Message -error }}}}
 
 function get-ibPassword {
   param ([parameter(Mandatory=$true)][string]$password)
