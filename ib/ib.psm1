@@ -291,7 +291,7 @@ function get-ibComputers {
   #>
 
   #prérequis
-  if (!(Get-Command Start-ThreadJob)) {
+  if (!(Get-Command Start-ThreadJob -errorAction silentlyContinue)) {
     Write-Debug 'Installation du module "ThreadJob".'
     Install-Module -Name ThreadJob -Force -scope allUsers
     import-module -Name ThreadJob}

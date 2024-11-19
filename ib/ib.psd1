@@ -5,11 +5,11 @@
 @{
 
 RootModule = 'ib.psm1'
-ModuleVersion = '1.1'
+ModuleVersion = '1.1.1'
 GUID = '8afa264f-71b6-4f7c-b16b-36463452660c'
 Author = 'Renaud WANGLER'
 CompanyName = 'ib'
-Copyright = '(c) 2024 ib. Tous droits réservés.'
+Copyright = '(c) 2024 ib Cegos. Tous droits réservés.'
 Description = 'Simplification des actions techniques pour les installations des machines en salle'
 PowerShellVersion = '5.0'
 ScriptsToProcess = @('.\moduleImport.ps1')
