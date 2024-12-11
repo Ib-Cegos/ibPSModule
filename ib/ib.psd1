@@ -5,7 +5,7 @@
 @{
 
 RootModule = 'ib.psm1'
-ModuleVersion = '1.1.2'
+ModuleVersion = '1.1.3'
 GUID = '8afa264f-71b6-4f7c-b16b-36463452660c'
 Author = 'Renaud WANGLER'
 CompanyName = 'ib'
@@ -24,7 +24,8 @@ FunctionsToExport = @(
 'get-ibPassword',
 'wait-ibNetwork',
 'write-ibLog',
-'get-ibLog')
+'get-ibLog',
+'install-ibScreenPaint')
 CmdletsToExport = @()
 VariablesToExport = '*'
 AliasesToExport = @('oic','optib')
