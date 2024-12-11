@@ -5,7 +5,7 @@
 @{
 
 RootModule = 'ib.psm1'
-ModuleVersion = '1.1.1'
+ModuleVersion = '1.1.2'
 GUID = '8afa264f-71b6-4f7c-b16b-36463452660c'
 Author = 'Renaud WANGLER'
 CompanyName = 'ib'

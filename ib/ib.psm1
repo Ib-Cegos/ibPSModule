@@ -104,8 +104,24 @@ function optimize-ibComputer {
           Invoke-Expression $command -OutVariable commandResult | Out-Null
           write-ibLog -id 2 -command $command -message (out-string -InputObject $commandResult) -session $sessionToSetup }
         catch { write-ibLog -id 2 -command $command -message $_.Exception.Message -error }}}
-
       }}
+
+function install-ibScreenPaint {
+  <#
+  .DESCRIPTION
+  Cette commande installe silencieusement l'outil "Screen Marker and recorder" depuis le store Windows.
+    .PARAMETER autoStart
+  Si ce paramètre est mentionné, un raccourci de démarrage automatique sera ajouté pour que ce programme se lance à l'ouverture de session utilisateur.
+  #>
+  param([switch]$autoStart)
+  #Installer "Screen Marker and Recorder"
+  write-ibLog -message 'Installation du logiciel "Screen Marker and Recorder" depuis le Microsoft Store.'
+  winget install 9n0fw68w0dfw --accept-source-agreements --accept-package-agreements --silent --force --nowarn --disable-interactivity >> out-null
+  if ($autoStart) {
+    #Ajouter "Screen Marker and Recorder" au démarrage de Windows
+    $ibShortcut = (New-Object -ComObject WScript.Shell).CreateShortcut("$([System.Environment]::GetFolderPath('startup'))\Screen Marker and Recorder.lnk")
+    $ibShortcut.Arguments = $ibShortcut.TargetPath = "shell:AppsFolder\$((Get-StartApps "*screen Marker*").appId)"
+    $ibShortcut.Save() }}
 
 function get-ibPassword {
   param ([parameter(Mandatory=$true)][string]$password)
@@ -423,4 +439,5 @@ else {invoke-ibNetCommand 'Stop-Computer -Force'}
 #######################
 New-Alias -Name oic -Value optimize-ibComputer -ErrorAction SilentlyContinue
 New-Alias -Name optib -Value optimize-ibComputer -ErrorAction SilentlyContinue
-Export-moduleMember -Function invoke-ibMute,get-ibComputers,invoke-ibNetCommand,stop-ibNet,new-ibTeamsShortcut,get-ibComputerInfo,optimize-ibComputer,get-ibPassword,wait-ibNetwork,write-ibLog,get-ibLog -Alias oic,optib
+New-Alias -Name ibPaint -value install-ibScreenPaint -errorAction SilentlyContinue
+Export-moduleMember -Function invoke-ibMute,get-ibComputers,invoke-ibNetCommand,stop-ibNet,new-ibTeamsShortcut,get-ibComputerInfo,optimize-ibComputer,get-ibPassword,wait-ibNetwork,write-ibLog,get-ibLog,install-ibScreenPaint -Alias oic,optib
