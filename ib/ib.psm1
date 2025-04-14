@@ -1,7 +1,7 @@
 ﻿#URL des fichiers json de référence ib partagés sur OneDrive
 $infoUrl = 'https://ibgroupecegos-my.sharepoint.com/:u:/g/personal/distanciel_ib_cegos_fr/'
 $computersInfoUrl = "$($infoUrl)EZu4bAqgln5PlEwkMPtryEcB8UL-RJvUxig2GfHESWQjeQ?e=UMd3jn"
-$sessionsInfoUrl = "$($infoUrl)EbJVsXJh_AVFjvbwxH-wHBoBhswZAG2O8wHXCJ6guXBk3w?e=1mvGBN"
+$sessionsInfoUrl = "$($infoUrl)EYrPnfJ16fFLp4QJsD9cwF4BvfayFcnqbnpVn8DZhghOOQ?e=NhPWEk"
 $ibPassKey = (83,124,0,8,91,12,213,127,158,123,148,248,53,200,192,219,165,223,105,253,73,86,183,226,187,204,21,4,115,230,153,114)
 $eventSource = 'ibPowershellModule'
 
