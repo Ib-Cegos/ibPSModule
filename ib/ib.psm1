@@ -309,8 +309,8 @@ function get-ibComputers {
   #prérequis
   if (!(Get-Command Start-ThreadJob -errorAction silentlyContinue)) {
     Write-Debug 'Installation du module "ThreadJob".'
-    Install-Module -Name ThreadJob -Force -scope allUsers
-    import-module -Name ThreadJob}
+    Install-Module -Name Microsoft.Powershell.ThreadJob -Force -scope allUsers
+    import-module -Name Microsoft.Powershell.ThreadJob}
   #Récuperation des informations sur le subnet
   $netIPConfig = get-NetIPConfiguration|Where-Object {$_.netAdapter.status -like 'up' -and $_.InterfaceDescription -notlike '*VirtualBox*' -and $_.InterfaceDescription -notlike '*vmware*' -and $_.InterfaceDescription -notlike '*virtual*'}
   $netIpAddress = $netIPConfig|Get-NetIPAddress -AddressFamily ipv4
