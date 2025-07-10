@@ -440,4 +440,4 @@ else {invoke-ibNetCommand 'Stop-Computer -Force'}
 New-Alias -Name oic -Value optimize-ibComputer -ErrorAction SilentlyContinue
 New-Alias -Name optib -Value optimize-ibComputer -ErrorAction SilentlyContinue
 New-Alias -Name ibPaint -value install-ibScreenPaint -errorAction SilentlyContinue
-Export-moduleMember -Function invoke-ibMute,get-ibComputers,invoke-ibNetCommand,stop-ibNet,new-ibTeamsShortcut,get-ibComputerInfo,optimize-ibComputer,get-ibPassword,wait-ibNetwork,write-ibLog,get-ibLog,install-ibScreenPaint -Alias oic,optib
+Export-moduleMember -Function invoke-ibMute,get-ibComputers,invoke-ibNetCommand,stop-ibNet,new-ibTeamsShortcut,get-ibComputerInfo,optimize-ibComputer,get-ibPassword,wait-ibNetwork,write-ibLog,get-ibLog,install-ibScreenPaint -Alias oic,optib,ibPaint
