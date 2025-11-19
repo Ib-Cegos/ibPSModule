@@ -123,6 +123,33 @@ function install-ibScreenPaint {
     $ibShortcut.Arguments = $ibShortcut.TargetPath = "shell:AppsFolder\$((Get-StartApps "*screen Marker*").appId)"
     $ibShortcut.Save() }}
 
+function install-ibZoomit {
+  <#
+  .DESCRIPTION
+  Cette commande va utomatiquement télécharger, installer et configurer l'outil "ZoomIt" qui permet largement de dynamiser les démonstrations.
+  .PARAMETER noAutostart
+  Si ce paramètre est mentionné, ZoomIt ne sera pas configuré pour démarrer automatiquement.
+  #>
+  param([switch]$noAutoStart)
+  function Set-RegistryValue {
+    param ( [string]$Path='HKCU:\Software\Sysinternals\ZoomIt', [string]$Name, [string]$Value, [string]$PropertyType='Dword' )
+  if (-not (Test-Path $Path)) { New-Item -Path $Path -Force | Out-Null }
+    New-ItemProperty -Path $Path -Name $Name -Value $Value -PropertyType $PropertyType -Force | Out-Null }
+  #Stop current ZoomIt running
+  foreach ($Process in (Get-Process -Name "ZoomIt*" -ErrorAction silentlyContinue)) {
+    Stop-Process -Id $Process.Id -Force
+    Start-Sleep -Seconds 1}
+  $DownloadURL = 'https://live.sysinternals.com/ZoomIt64.exe'
+  $DestinationFile = Join-Path -Path ([Environment]::GetFolderPath('MyDocuments')) -ChildPath ($DownloadURL.Split('/')[-1])
+  Invoke-WebRequest -Uri $DownloadURL -OutFile $DestinationFile -ErrorAction Stop #Download ZoomIt in current user Documents folder
+  Set-RegistryValue -Name 'EulaAccepted' -Value 1
+  Set-RegistryValue -Name 'OptionsShown' -Value 1
+  Set-RegistryValue -Name 'ToggleKey' -value 625          #Toggle Key to [Ctrl+F2]
+  Set-RegistryValue -Name 'DrawToggleKey' -value 624      #Draw Toggle Key to [Ctrl+F1]
+  Set-RegistryValue -Name 'RecordToggleKey' -value 626    #Record Toggle Key to [Ctrl+F3]
+  if (!$noAutoStart) { Set-RegistryValue -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'ZoomIt' -Value $DestinationFile -PropertyType String } # Run On Startup via Registry
+  Start-Process -FilePath $DestinationFile -NoNewWindow } #Start ZoomIt
+
 function get-ibPassword {
   param ([parameter(Mandatory=$true)][string]$password)
   $key = 0..255 | Get-Random -Count 32 |ForEach-Object {[byte]$_}
@@ -440,4 +467,4 @@ else {invoke-ibNetCommand 'Stop-Computer -Force'}
 New-Alias -Name oic -Value optimize-ibComputer -ErrorAction SilentlyContinue
 New-Alias -Name optib -Value optimize-ibComputer -ErrorAction SilentlyContinue
 New-Alias -Name ibPaint -value install-ibScreenPaint -errorAction SilentlyContinue
-Export-moduleMember -Function invoke-ibMute,get-ibComputers,invoke-ibNetCommand,stop-ibNet,new-ibTeamsShortcut,get-ibComputerInfo,optimize-ibComputer,get-ibPassword,wait-ibNetwork,write-ibLog,get-ibLog,install-ibScreenPaint -Alias oic,optib,ibPaint
+Export-moduleMember -Function invoke-ibMute,get-ibComputers,invoke-ibNetCommand,stop-ibNet,new-ibTeamsShortcut,get-ibComputerInfo,optimize-ibComputer,get-ibPassword,wait-ibNetwork,write-ibLog,get-ibLog,install-ibScreenPaint,install-ibZoomit -Alias oic,optib,ibPaint
