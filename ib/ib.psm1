@@ -448,7 +448,7 @@ function invoke-ibMute {
     Set-Item WSMan:\localhost\Client\TrustedHosts -value $savedTrustedHosts -Force}
 
 
-function ResetIb {
+function Reset-Ib {
 
 $resultats = Get-BCDentry
 $command2019 = "bcdedit /set {default} description Ib"
@@ -522,7 +522,7 @@ foreach ($resultat in $resultats) {
     }
 } 
 
-function Reset365 {
+function Reset-Office365 {
 
 $storeFile = "D:\Reset.txt"
 $resultats = Get-BCDentry
@@ -625,4 +625,6 @@ else {invoke-ibNetCommand 'Stop-Computer -Force'}
 New-Alias -Name oic -Value optimize-ibComputer -ErrorAction SilentlyContinue
 New-Alias -Name optib -Value optimize-ibComputer -ErrorAction SilentlyContinue
 New-Alias -Name ibPaint -value install-ibScreenPaint -errorAction SilentlyContinue
-Export-moduleMember -Function invoke-ibMute,get-ibComputers,invoke-ibNetCommand,stop-ibNet,new-ibTeamsShortcut,get-ibComputerInfo,optimize-ibComputer,get-ibPassword,wait-ibNetwork,write-ibLog,get-ibLog,install-ibScreenPaint,install-ibZoomit,Reset365,ResetIb -Alias oic,optib,ibPaint
+New-Alias -Name Resetib -Value Reset-Ib -ErrorAction SilentlyContinue
+New-Alias -Name Reset365 -Value Reset-Office365 -ErrorAction SilentlyContinue
+Export-moduleMember -Function invoke-ibMute,get-ibComputers,invoke-ibNetCommand,stop-ibNet,new-ibTeamsShortcut,get-ibComputerInfo,optimize-ibComputer,get-ibPassword,wait-ibNetwork,write-ibLog,get-ibLog,install-ibScreenPaint,install-ibZoomit,Reset-Office365,Reset-Ib -Alias oic,optib,ibPaint,ResetIb,Reset365
