@@ -447,6 +447,164 @@ function invoke-ibMute {
             else { Write-Host "[$computer] Erreur: $($_.Exception.message)" -ForegroundColor Red }}}
     Set-Item WSMan:\localhost\Client\TrustedHosts -value $savedTrustedHosts -Force}
 
+
+function ResetIb {
+
+$resultats = Get-BCDentry
+$command2019 = "bcdedit /set {default} description Ib"
+$command2019_1 = "bcdedit /set {default} device vhd=[D:]\Ib.vhdx"
+$command2019_2 = "bcdedit /set {default} osdevice vhd=[D:]\Ib.vhdx"
+$command_2019 = "bcdedit /set {default} description Ib2"
+$command_2019_1 = "bcdedit /set {default} device vhd=[D:]\Ib2.vhdx"
+$command_2019_2 = "bcdedit /set {default} osdevice vhd=[D:]\Ib2.vhdx"
+
+# on recherche la descritpion du boot
+foreach ($resultat in $resultats) {
+    # Convertir l'objet en chaîne de caractères
+    $resultat_str = $resultat | Out-String
+
+    # Diviser le résultat en lignes
+    $lignes = $resultat_str -split "`n"
+
+    # Parcourir les lignes
+    foreach ($ligne in $lignes) {
+        # Vérifier si la ligne contient la description
+        if ($ligne -match "description\s+(.+)") {
+            # Extraire le contenu de la description
+            $description = $matches[1].Trim()
+            # Sortir de la boucle intérieure une fois la description trouvée
+            break
+        }
+    }
+
+    # Sortir de la boucle externe si la description a été trouvée
+    if ($description) {
+        break
+    }
+}
+
+
+    if ($description -eq "Ib") {
+        #Supprime le vhd
+        Remove-Item -Path "D:\Ib2.vhdx" -Force
+        #Re-créer le vhd
+        diskpart /s C:\VHD\Office_2019.txt
+        #passe en premier option de boot le vhd Office_2019
+        Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command_2019" -Verb RunAs -Wait
+        Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command_2019_1" -Verb RunAs -Wait
+        Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command_2019_2" -Verb RunAs -Wait
+        #Affiche la pop-up de redémarrage puis redémarre au bout de 10sec
+        #10 secondes d'affichage
+        $Temps = 10
+        #contenant de la pop-up
+        $Message = "Votre machine doit redémarrer pour terminer sa configuration, merci de patienter..."
+        #Titre de la pop_up
+        $Titre = " Information importante "
+        #Création d'un objet de type pop-up
+        $Prompt = New-Object -ComObject WScript.Shell
+        #Action d'afficher la pop-up
+        $AffichageMessage = $Prompt.popup($Message, $Temps, $Titre, 16+0)
+        #Redémarrer l'ordinateur
+        Restart-Computer -force
+   } 
+	#Si la description de l'entry du boot actuel est "Office_2019"
+	else {
+        #Supprime le vhd 
+        Remove-Item -Path "D:\Ib.vhdx" -Force
+        #Re-créer le vhd
+        diskpart /s C:\VHD\Office2019.txt
+        #Passe en premier option de boot le vhd Office2019
+        Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command2019" -Verb RunAs -Wait
+        Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command2019_1" -Verb RunAs -Wait
+        Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command2019_2" -Verb RunAs -Wait
+        #Affiche la pop-up de redémarrage puis redémarre au bout de 10sec
+        Show-MessageAndRestart
+    }
+} 
+
+function Reset365 {
+
+$storeFile = "D:\Reset.txt"
+$resultats = Get-BCDentry
+$command365 = "bcdedit /set {default} description Office365"
+$command365_1 = "bcdedit /set {default} device vhd=[D:]\Office365.vhdx"
+$command365_2 = "bcdedit /set {default} osdevice vhd=[D:]\Office365.vhdx"
+$command_365 = "bcdedit /set {default} description Office_365"
+$command_365_1 = "bcdedit /set {default} device vhd=[D:]\Office_365.vhdx"
+$command_365_2 = "bcdedit /set {default} osdevice vhd=[D:]\Office_365.vhdx"
+
+foreach ($resultat in $resultats) {
+    # Convertir l'objet en chaîne de caractères
+    $resultat_str = $resultat | Out-String
+
+    # Diviser le résultat en lignes
+    $lignes = $resultat_str -split "`n"
+
+    # Parcourir les lignes
+    foreach ($ligne in $lignes) {
+        # Vérifier si la ligne contient la description
+        if ($ligne -match "description\s+(.+)") {
+            # Extraire le contenu de la description
+            $description = $matches[1].Trim()
+            # Sortir de la boucle intérieure une fois la description trouvée
+            break
+        }
+    }
+
+    # Sortir de la boucle externe si la description a été trouvée
+    if ($description) {
+        break
+    }
+}
+    
+    if ($description -eq "Office365") {
+        #Supprime le vhd
+        Remove-Item -Path "D:\Office_365.vhdx" -Force
+        #Re-créer le vhd
+        diskpart /s C:\VHD\Office_365.txt
+        #passe en premier option de boot le vhd Office_365
+        Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command_365" -Verb RunAs -Wait
+        Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command_365_1" -Verb RunAs -Wait
+        Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command_365_2" -Verb RunAs -Wait
+        #Affiche la pop-up de redémarrage puis redémarre au bout de 10sec
+        #10 secondes d'affichage
+        $Temps = 10
+        #contenant de la pop-up
+        $Message = "Votre machine doit redémarrer pour terminer sa configuration, merci de patienter..."
+        #Titre de la pop_up
+        $Titre = " Information importante "
+        #Création d'un objet de type pop-up
+        $Prompt = New-Object -ComObject WScript.Shell
+        #Action d'afficher la pop-up
+        $AffichageMessage = $Prompt.popup($Message, $Temps, $Titre, 16+0)
+        #Redémarrer l'ordinateur
+        Restart-Computer -force
+   } 
+	else {
+        #Supprime le vhd 
+        Remove-Item -Path "D:\Office365.vhdx" -Force
+        #Re-créer le vhd
+        diskpart /s C:\VHD\Office365.txt
+        #Passe en premier option de boot le vhd Office365
+        Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command365" -Verb RunAs -Wait
+        Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command365_1" -Verb RunAs -Wait
+        Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command365_2" -Verb RunAs -Wait
+        #Affiche la pop-up de redémarrage puis redémarre au bout de 10sec
+        #10 secondes d'affichage
+        $Temps = 10
+        #contenant de la pop-up
+        $Message = "Votre machine doit redémarrer pour terminer sa configuration, merci de patienter..."
+        #Titre de la pop_up
+        $Titre = " Information importante "
+        #Création d'un objet de type pop-up
+        $Prompt = New-Object -ComObject WScript.Shell
+        #Action d'afficher la pop-up
+        $AffichageMessage = $Prompt.popup($Message, $Temps, $Titre, 16+0)
+        #Redémarrer l'ordinateur
+        Restart-Computer -force
+    }
+} 
+
 function stop-ibNet {
 <#
 .DESCRIPTION
@@ -467,4 +625,4 @@ else {invoke-ibNetCommand 'Stop-Computer -Force'}
 New-Alias -Name oic -Value optimize-ibComputer -ErrorAction SilentlyContinue
 New-Alias -Name optib -Value optimize-ibComputer -ErrorAction SilentlyContinue
 New-Alias -Name ibPaint -value install-ibScreenPaint -errorAction SilentlyContinue
-Export-moduleMember -Function invoke-ibMute,get-ibComputers,invoke-ibNetCommand,stop-ibNet,new-ibTeamsShortcut,get-ibComputerInfo,optimize-ibComputer,get-ibPassword,wait-ibNetwork,write-ibLog,get-ibLog,install-ibScreenPaint,install-ibZoomit -Alias oic,optib,ibPaint
+Export-moduleMember -Function invoke-ibMute,get-ibComputers,invoke-ibNetCommand,stop-ibNet,new-ibTeamsShortcut,get-ibComputerInfo,optimize-ibComputer,get-ibPassword,wait-ibNetwork,write-ibLog,get-ibLog,install-ibScreenPaint,install-ibZoomit,Reset365,ResetIb -Alias oic,optib,ibPaint

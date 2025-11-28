@@ -5,7 +5,7 @@
 @{
 
 RootModule = 'ib.psm1'
-ModuleVersion = '1.1.8'
+ModuleVersion = '1.1.9'
 GUID = '8afa264f-71b6-4f7c-b16b-36463452660c'
 Author = 'Renaud WANGLER'
 CompanyName = 'ib'
@@ -26,7 +26,9 @@ FunctionsToExport = @(
 'write-ibLog',
 'get-ibLog',
 'install-ibScreenPaint',
-'install-ibZoomit')
+'install-ibZoomit',
+'Reset365',
+'ResetIb')
 CmdletsToExport = @()
 VariablesToExport = '*'
 AliasesToExport = @('oic','optib','ibPaint')
