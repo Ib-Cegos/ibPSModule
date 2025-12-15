@@ -489,7 +489,7 @@ foreach ($resultat in $resultats) {
         Remove-Item -Path "D:\Ib2.vhdx" -Force
         #Re-créer le vhd
         diskpart /s C:\VHD\Ib2.txt
-        #passe en premier option de boot le vhd Office_2019
+        #passe en premier option de boot le vhd Ib2
         Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command_2019" -Verb RunAs -Wait
         Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command_2019_1" -Verb RunAs -Wait
         Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command_2019_2" -Verb RunAs -Wait
@@ -507,7 +507,7 @@ foreach ($resultat in $resultats) {
         #Redémarrer l'ordinateur
         Restart-Computer -force
    } 
-	#Si la description de l'entry du boot actuel est "Office_2019"
+	#Si la description de l'entry du boot actuel est "Ib2"
 	else {
         #Supprime le vhd 
         Remove-Item -Path "D:\Ib.vhdx" -Force
