@@ -488,7 +488,7 @@ foreach ($resultat in $resultats) {
         #Supprime le vhd
         Remove-Item -Path "D:\Ib2.vhdx" -Force
         #Re-créer le vhd
-        diskpart /s C:\VHD\Office_2019.txt
+        diskpart /s C:\VHD\Ib2.txt
         #passe en premier option de boot le vhd Office_2019
         Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command_2019" -Verb RunAs -Wait
         Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command_2019_1" -Verb RunAs -Wait
