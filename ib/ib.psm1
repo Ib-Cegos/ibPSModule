@@ -512,19 +512,30 @@ foreach ($resultat in $resultats) {
         #Supprime le vhd 
         Remove-Item -Path "D:\Ib.vhdx" -Force
         #Re-créer le vhd
-        diskpart /s C:\VHD\Office2019.txt
+        diskpart /s C:\VHD\Ib.txt
         #Passe en premier option de boot le vhd Office2019
         Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command2019" -Verb RunAs -Wait
         Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command2019_1" -Verb RunAs -Wait
         Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command2019_2" -Verb RunAs -Wait
         #Affiche la pop-up de redémarrage puis redémarre au bout de 10sec
-        Show-MessageAndRestart
+         #Affiche la pop-up de redémarrage puis redémarre au bout de 10sec
+        #10 secondes d'affichage
+        $Temps = 10
+        #contenant de la pop-up
+        $Message = "Votre machine doit redémarrer pour terminer sa configuration, merci de patienter..."
+        #Titre de la pop_up
+        $Titre = " Information importante "
+        #Création d'un objet de type pop-up
+        $Prompt = New-Object -ComObject WScript.Shell
+        #Action d'afficher la pop-up
+        $AffichageMessage = $Prompt.popup($Message, $Temps, $Titre, 16+0)
+        #Redémarrer l'ordinateur
+        Restart-Computer -force
     }
 } 
 
 function Reset-Office365 {
 
-$storeFile = "D:\Reset.txt"
 $resultats = Get-BCDentry
 $command365 = "bcdedit /set {default} description Office365"
 $command365_1 = "bcdedit /set {default} device vhd=[D:]\Office365.vhdx"
@@ -628,3 +639,4 @@ New-Alias -Name ibPaint -value install-ibScreenPaint -errorAction SilentlyContin
 New-Alias -Name Resetib -Value Reset-Ib -ErrorAction SilentlyContinue
 New-Alias -Name Reset365 -Value Reset-Office365 -ErrorAction SilentlyContinue
 Export-moduleMember -Function invoke-ibMute,get-ibComputers,invoke-ibNetCommand,stop-ibNet,new-ibTeamsShortcut,get-ibComputerInfo,optimize-ibComputer,get-ibPassword,wait-ibNetwork,write-ibLog,get-ibLog,install-ibScreenPaint,install-ibZoomit,Reset-Office365,Reset-Ib -Alias oic,optib,ibPaint,ResetIb,Reset365
+
