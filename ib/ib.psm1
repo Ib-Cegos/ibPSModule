@@ -4,6 +4,15 @@ $computersInfoUrl = "$($infoUrl)EZu4bAqgln5PlEwkMPtryEcB8UL-RJvUxig2GfHESWQjeQ?e
 $sessionsInfoUrl = "$($infoUrl)EYrPnfJ16fFLp4QJsD9cwF4BvfayFcnqbnpVn8DZhghOOQ?e=NhPWEk"
 $ibPassKey = (83,124,0,8,91,12,213,127,158,123,148,248,53,200,192,219,165,223,105,253,73,86,183,226,187,204,21,4,115,230,153,114)
 $eventSource = 'ibPowershellModule'
+#Variables InstaConfig
+$OneDrive = "Instaconfig@ib.cegos.fr"
+$Refjson = "Instaconfig/ref.json"
+$Sessionjson = "Instaconfig/Session.json"
+$logpc = "Instaconfig/LogPC"
+#Variable Graph API Cert
+$TenantID = "e74184e9-1df7-4853-be30-607586a79c4e"
+$ClientID = "22b5bb73-dd05-4c02-975b-0b001b95b1ea"
+$ThumbPrint = "7901E1765092A676B54B46299EDDD2EACC2BB4C7"
 
 function write-ibLog {
   param (
