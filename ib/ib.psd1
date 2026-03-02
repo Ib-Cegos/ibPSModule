@@ -5,7 +5,7 @@
 @{
 
 RootModule = 'ib.psm1'
-ModuleVersion = '1.1.11'
+ModuleVersion = '1.2.0'
 GUID = '8afa264f-71b6-4f7c-b16b-36463452660c'
 Author = 'Renaud WANGLER'
 CompanyName = 'ib'
@@ -28,10 +28,11 @@ FunctionsToExport = @(
 'install-ibScreenPaint',
 'install-ibZoomit',
 'Reset-Office365',
-'Reset-Ib')
+'Reset-Ib',
+'Invoke-InstaConfig')
 CmdletsToExport = @()
 VariablesToExport = '*'
-AliasesToExport = @('oic','optib','ibPaint','ResetIb','Reset365')
+AliasesToExport = @('oic','optib','ibPaint','ResetIb','Reset365','InstaConfig')
 FileList = @('svcl.exe')
 PrivateData = @{
     PSData = @{

@@ -5,14 +5,16 @@ $sessionsInfoUrl = "$($infoUrl)EYrPnfJ16fFLp4QJsD9cwF4BvfayFcnqbnpVn8DZhghOOQ?e=
 $ibPassKey = (83,124,0,8,91,12,213,127,158,123,148,248,53,200,192,219,165,223,105,253,73,86,183,226,187,204,21,4,115,230,153,114)
 $eventSource = 'ibPowershellModule'
 #Variables InstaConfig
-$OneDrive = "Instaconfig@ib.cegos.fr"
-$Refjson = "Instaconfig/ref.json"
-$Sessionjson = "Instaconfig/Session.json"
-$logpc = "Instaconfig/LogPC"
+$script:OneDriveUserUpn = "InstaConfig@ib.fr"
+$script:RefRemotePath = "Instaconfig/ref.json"
+$script:SessionRemotePath = "Instaconfig/Session.json"
+$script:LogPcRemoteFolder = "Instaconfig/LogPC"
+$script:TmpDir = Join-Path $env:ProgramData "StageTmp"
+$script:IbRepositoryDefault = "PSGallery"
 #Variable Graph API Cert
-$TenantID = "e74184e9-1df7-4853-be30-607586a79c4e"
-$ClientID = "22b5bb73-dd05-4c02-975b-0b001b95b1ea"
-$ThumbPrint = "7901E1765092A676B54B46299EDDD2EACC2BB4C7"
+$script:TenantId = "e74184e9-1df7-4853-be30-607586a79c4e"
+$script:ClientId = "22b5bb73-dd05-4c02-975b-0b001b95b1ea"
+$script:Thumbprint = "7901E1765092A676B54B46299EDDD2EACC2BB4C7"
 
 function write-ibLog {
   param (
@@ -413,6 +415,20 @@ Va se connecter à chaque machine du réseau pour récupérer son nom d'ordinate
             else { Write-Host "[$computer] Erreur: $($_.Exception.message)" -ForegroundColor Red }}}
     Set-Item WSMan:\localhost\Client\TrustedHosts -value $savedTrustedHosts -Force}
 
+function stop-ibNet {
+<#
+.DESCRIPTION
+Cette commande permet d'arrêter toutes les machines du réseau local, en terminant par la machine sur laquelle est lançée la commande
+.PARAMETER GetCred
+Si ce switch n'est pas spécifié, l'identité de l'utilisateur actuellement connecté sera utilisée pour stopper les machines.
+#>
+param(
+[switch]$GetCred)
+if ($GetCred) {invoke-ibNetCommand -Command 'stop-Computer -Force' -GetCred}
+elseif ($autoCred) { invoke-ibNetCommand 'stop-computer -Force' -autoCred }
+else {invoke-ibNetCommand 'Stop-Computer -Force'}
+  Stop-Computer -Force}
+
 function invoke-ibMute {
   <#
   .DESCRIPTION
@@ -456,6 +472,7 @@ function invoke-ibMute {
             else { Write-Host "[$computer] Erreur: $($_.Exception.message)" -ForegroundColor Red }}}
     Set-Item WSMan:\localhost\Client\TrustedHosts -value $savedTrustedHosts -Force}
 
+# ========================= InstaConfig =========================
 
 function Reset-Ib {
 
@@ -625,27 +642,512 @@ foreach ($resultat in $resultats) {
     }
 } 
 
-function stop-ibNet {
-<#
-.DESCRIPTION
-Cette commande permet d'arrêter toutes les machines du réseau local, en terminant par la machine sur laquelle est lançée la commande
-.PARAMETER GetCred
-Si ce switch n'est pas spécifié, l'identité de l'utilisateur actuellement connecté sera utilisée pour stopper les machines.
-#>
-param(
-[switch]$GetCred)
-if ($GetCred) {invoke-ibNetCommand -Command 'stop-Computer -Force' -GetCred}
-elseif ($autoCred) { invoke-ibNetCommand 'stop-computer -Force' -autoCred }
-else {invoke-ibNetCommand 'Stop-Computer -Force'}
-  Stop-Computer -Force}
+function Write-Log {
+  param(
+    [Parameter(Mandatory=$true)][string]$Message,
+    [ValidateSet("INFO","WARN","ERROR")][string]$Level = "INFO"
+  )
+  $ts = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+  Write-Host "[$ts][$Level] $Message"
+}
+
+function Ensure-Directory {
+  param([Parameter(Mandatory=$true)][string]$Path)
+  if (-not (Test-Path -LiteralPath $Path)) {
+    New-Item -ItemType Directory -Path $Path -Force | Out-Null
+  }
+}
+
+function Get-InstalledModuleVersion {
+  param([Parameter(Mandatory=$true)][string]$Name)
+
+  $m = Get-Module -ListAvailable -Name $Name |
+    Sort-Object Version -Descending |
+    Select-Object -First 1
+
+  if ($null -eq $m) { return $null }
+  return [version]$m.Version
+}
+
+function Ensure-IbModuleUpToDate {
+  param(
+    [Parameter(Mandatory=$true)][string]$Name,
+    [Parameter(Mandatory=$true)][string]$Repository,
+    [switch]$Force,
+    [switch]$WhatIfMode
+  )
+
+  try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
+
+  $installed = Get-InstalledModuleVersion -Name $Name
+  if ($installed) { Write-Log "Module $Name installé: v$installed" }
+  else { Write-Log "Module $Name non installé." "WARN" }
+
+  $latest = $null
+  try {
+    $found = Find-Module -Name $Name -Repository $Repository -ErrorAction Stop
+    $latest = [version]$found.Version
+    Write-Log "Module $Name disponible dans $Repository:v$latest"
+  } catch {
+    Write-Log "Impossible de vérifier la dernière version du module '$Name' via '$Repository' : $($_.Exception.Message)" "WARN"
+    Write-Log "Je continue avec la version installée (si présente)." "WARN"
+    if (-not $installed) { throw "Module '$Name' absent et impossible de le récupérer depuis un dépôt." }
+    Import-Module $Name -Force -ErrorAction Stop
+    return
+  }
+
+  $needUpdate = $Force.IsPresent -or (-not $installed) -or ($installed -lt $latest)
+
+  if (-not $needUpdate) {
+    Write-Log "Module $Name déjà à jour."
+    Import-Module $Name -Force -ErrorAction Stop
+    return
+  }
+
+  if ($WhatIfMode) {
+    Write-Log "WHATIF: j'aurais mis à jour/installé le module $Name vers v$latest depuis $Repository" "WARN"
+    Import-Module $Name -Force -ErrorAction SilentlyContinue | Out-Null
+    return
+  }
+
+  Write-Log "Mise à jour/installation du module $Name depuis $Repository..."
+  if (-not $installed) {
+    Install-Module -Name $Name -Repository $Repository -Scope AllUsers -Force -AllowClobber -ErrorAction Stop
+  } else {
+    Update-Module -Name $Name -Force -ErrorAction Stop
+  }
+
+  Import-Module $Name -Force -ErrorAction Stop
+  $newInstalled = Get-InstalledModuleVersion -Name $Name
+  Write-Log "Module $Name prêt: v$newInstalled"
+}
+
+function Get-TodayYmd { (Get-Date).ToString("yyyyMMdd") }
+
+function Parse-Ymd {
+  param([Parameter(Mandatory=$true)][string]$Ymd)
+  [datetime]::ParseExact($Ymd, "yyyyMMdd", $null)
+}
+
+function Is-DateInRange {
+  param(
+    [Parameter(Mandatory=$true)][string]$TodayYmd,
+    [Parameter(Mandatory=$true)][string]$StartYmd,
+    [Parameter(Mandatory=$true)][string]$EndYmd
+  )
+  $t = Parse-Ymd $TodayYmd
+  $s = Parse-Ymd $StartYmd
+  $e = Parse-Ymd $EndYmd
+  ($t -ge $s -and $t -le $e)
+}
+
+function Get-ServiceTag {
+  $candidates = @()
+
+  try {
+    $bios = Get-CimInstance -ClassName Win32_BIOS
+    if ($bios.SerialNumber) { $candidates += [string]$bios.SerialNumber }
+  } catch {}
+
+  try {
+    $enc = Get-CimInstance -ClassName Win32_SystemEnclosure
+    if ($enc.SMBIOSAssetTag) { $candidates += [string]$enc.SMBIOSAssetTag }
+  } catch {}
+
+  $candidates = @(
+    $candidates |
+      ForEach-Object { $_.Trim() } |
+      Where-Object { $_ -and $_ -notmatch "^(To be filled|Default string|None)$" } |
+      Select-Object -Unique
+  )
+
+  if ($candidates.Count -eq 0) {
+    throw "Impossible de déterminer le Tag Service (SerialNumber/AssetTag vides)."
+  }
+
+  [string]$candidates[0]
+}
+
+function Load-JsonFile {
+  param([Parameter(Mandatory=$true)][string]$Path)
+  if (-not (Test-Path -LiteralPath $Path)) { throw "Fichier introuvable: $Path" }
+  (Get-Content -LiteralPath $Path -Raw -Encoding UTF8) | ConvertFrom-Json
+}
+
+function Convert-SessionsToList {
+  param([Parameter(Mandatory=$true)]$SessionRoot)
+
+  if (-not $SessionRoot.Sessions) {
+    throw "Session.json: clé 'Sessions' introuvable."
+  }
+
+  $list = New-Object System.Collections.Generic.List[object]
+  foreach ($p in $SessionRoot.Sessions.PSObject.Properties) {
+    $id = $p.Name
+    $v  = $p.Value
+    $list.Add([pscustomobject]@{
+      SessionId    = [string]$id
+      debut        = [string]$v.debut
+      fin          = [string]$v.fin
+      salle        = [string]$v.salle
+      stage        = [string]$v.stage
+      teamsMeeting = [string]$v.teamsMeeting
+    })
+  }
+  $list
+}
+
+function Get-RoomInfoFromRef {
+  param(
+    [Parameter(Mandatory=$true)]$RefRoot,
+    [Parameter(Mandatory=$true)][string]$ServiceTag
+  )
+
+  if (-not $RefRoot.Salles) {
+    throw "ref.json: clé 'Salles' introuvable."
+  }
+
+  foreach ($roomProp in $RefRoot.Salles.PSObject.Properties) {
+    $roomName = $roomProp.Name
+    $roomObj  = $roomProp.Value
+
+    if (-not $roomObj -or -not $roomObj.Stocks -or -not $roomObj.Stocks.PC) { continue }
+
+    $pcList = @($roomObj.Stocks.PC)
+    if ($pcList -contains $ServiceTag) {
+      $shareUrl = ""
+      if ($roomObj.URL -and $roomObj.URL.Partage) {
+        $shareUrl = [string]$roomObj.URL.Partage
+      }
+
+      return [pscustomobject]@{
+        Room     = [string]$roomName
+        ShareUrl = [string]$shareUrl
+      }
+    }
+  }
+
+  throw "Tag service '$ServiceTag' introuvable dans ref.json (Salles.*.Stocks.PC)."
+}
+
+function Get-StageActionsFromRef {
+  param(
+    [Parameter(Mandatory=$true)]$RefRoot,
+    [Parameter(Mandatory=$true)][string]$StageCode
+  )
+
+  if (-not $RefRoot.Stages) { throw "ref.json: clé 'Stages' introuvable." }
+  if (-not ($RefRoot.Stages.PSObject.Properties.Name -contains $StageCode)) {
+    throw "Stage '$StageCode' absent de ref.json -> Stages."
+  }
+
+  $stageObj = $RefRoot.Stages.$StageCode
+  $actions = @()
+
+  if ($stageObj.commands) {
+    foreach ($cmd in $stageObj.commands) {
+      if ($cmd.action) { $actions += [string]$cmd.action }
+    }
+  }
+
+  $actions | Select-Object -Unique
+}
+
+function Invoke-ResetAction {
+  param(
+    [Parameter(Mandatory=$true)][string]$ActionName,
+    [switch]$WhatIfMode
+  )
+
+  if (-not (Get-Command -Name $ActionName -ErrorAction SilentlyContinue)) {
+    throw "La fonction '$ActionName' n'existe pas (module ib)."
+  }
+
+  if ($WhatIfMode) {
+    Write-Log "WHATIF: j'aurais exécuté $ActionName" "WARN"
+    return
+  }
+
+  Write-Log "Exécution action: $ActionName"
+  & $ActionName
+}
+
+function New-UrlShortcut {
+  param(
+    [Parameter(Mandatory=$true)][string]$ShortcutPath,
+    [Parameter(Mandatory=$true)][string]$Url,
+    [string]$Description = "",
+    [string]$IconLocation = ""
+  )
+
+  $shell = New-Object -ComObject WScript.Shell
+  $sc = $shell.CreateShortcut($ShortcutPath)
+  $sc.TargetPath = $Url
+  if ($Description) { $sc.Description = $Description }
+  if ($IconLocation) { $sc.IconLocation = $IconLocation }
+  $sc.Save()
+}
+
+function Write-ShortcutsToPublicDesktop {
+  param(
+    [string]$ShareUrl,
+    [string]$TeamsUrl,
+    [string]$Room,
+    [string]$SessionId
+  )
+
+  $desktop = "C:\Users\Public\Desktop"
+  $icon    = "$env:WINDIR\System32\imageres.dll,15"
+
+  if ($TeamsUrl) {
+    $teamsName = "Teams_$SessionId.lnk"
+    $teamsPath = Join-Path $desktop $teamsName
+    New-UrlShortcut -ShortcutPath $teamsPath -Url $TeamsUrl -Description "Session Teams $SessionId" -IconLocation $icon
+    Write-Log "Raccourci Teams créé: $teamsPath"
+  } else {
+    Write-Log "Pas de lien Teams => pas de raccourci Teams." "WARN"
+  }
+
+  if ($ShareUrl) {
+    $safeRoom  = ($Room -replace '[\\/:*?"<>|]', '_')
+    $shareName = "Partage_$safeRoom.lnk"
+    $sharePath = Join-Path $desktop $shareName
+    New-UrlShortcut -ShortcutPath $sharePath -Url $ShareUrl -Description "Partage salle $Room" -IconLocation $icon
+    Write-Log "Raccourci Partage créé: $sharePath"
+  } else {
+    Write-Log "Pas de lien de partage => pas de raccourci Partage." "WARN"
+  }
+}
+
+# ========================= GRAPH (App-only + Cert) =========================
+
+function Ensure-MsalPs {
+  if (-not (Get-Module -ListAvailable -Name MSAL.PS)) {
+    Write-Log "Module MSAL.PS non trouvé. Installation..." "WARN"
+    try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
+    Install-Module MSAL.PS -Scope AllUsers -Force -ErrorAction Stop
+  }
+  Import-Module MSAL.PS -Force -ErrorAction Stop
+}
+
+function Get-GraphAccessToken {
+  Ensure-MsalPs
+
+  if (-not $script:TenantId -or $script:TenantId -like "CHANGE_ME*") { throw "TenantId non configuré dans le module." }
+  if (-not $script:ClientId -or $script:ClientId -like "CHANGE_ME*") { throw "ClientId non configuré dans le module." }
+  if (-not $script:Thumbprint -or $script:Thumbprint -like "CHANGE_ME*") { throw "Thumbprint non configuré dans le module." }
+
+  $cert = Get-ChildItem "Cert:\LocalMachine\My\$($script:Thumbprint)" -ErrorAction SilentlyContinue
+  if (-not $cert) { throw "Certificat introuvable dans Cert:\LocalMachine\My\ ($($script:Thumbprint))." }
+
+  $tok = Get-MsalToken -TenantId $script:TenantId -ClientId $script:ClientId -ClientCertificate $cert -Scopes "https://graph.microsoft.com/.default"
+  if (-not $tok.AccessToken) { throw "Impossible d'obtenir un token Graph (AccessToken vide)." }
+  return $tok.AccessToken
+}
+
+function Invoke-Graph {
+  param(
+    [Parameter(Mandatory=$true)][string]$AccessToken,
+    [Parameter(Mandatory=$true)][ValidateSet("GET","PUT","POST","PATCH","DELETE")][string]$Method,
+    [Parameter(Mandatory=$true)][string]$Uri,
+    [byte[]]$BodyBytes,
+    [string]$ContentType
+  )
+
+  $headers = @{ Authorization = "Bearer $AccessToken" }
+  if ($ContentType) { $headers["Content-Type"] = $ContentType }
+
+  if ($BodyBytes) {
+    return Invoke-RestMethod -Method $Method -Uri $Uri -Headers $headers -Body $BodyBytes -ErrorAction Stop
+  }
+  return Invoke-RestMethod -Method $Method -Uri $Uri -Headers $headers -ErrorAction Stop
+}
+
+function Download-GraphFileToLocal {
+  param(
+    [Parameter(Mandatory=$true)][string]$AccessToken,
+    [Parameter(Mandatory=$true)][string]$UserUpn,
+    [Parameter(Mandatory=$true)][string]$RemotePath,
+    [Parameter(Mandatory=$true)][string]$LocalPath
+  )
+
+  $uri = "https://graph.microsoft.com/v1.0/users/$UserUpn/drive/root:/$RemotePath:/content"
+  Write-Log "Téléchargement Graph: $RemotePath -> $LocalPath"
+  Invoke-WebRequest -Headers @{ Authorization = "Bearer $AccessToken" } -Uri $uri -OutFile $LocalPath -ErrorAction Stop | Out-Null
+}
+
+function Test-GraphFileExists {
+  param(
+    [Parameter(Mandatory=$true)][string]$AccessToken,
+    [Parameter(Mandatory=$true)][string]$UserUpn,
+    [Parameter(Mandatory=$true)][string]$RemotePath
+  )
+  $uri = "https://graph.microsoft.com/v1.0/users/$UserUpn/drive/root:/$RemotePath"
+  try {
+    Invoke-Graph -AccessToken $AccessToken -Method GET -Uri $uri | Out-Null
+    return $true
+  } catch {
+    if ($_.ErrorDetails.Message -match "itemNotFound") { return $false }
+    if ($_.Exception.Message -match "404") { return $false }
+    return $false
+  }
+}
+
+function Put-GraphTextFile {
+  param(
+    [Parameter(Mandatory=$true)][string]$AccessToken,
+    [Parameter(Mandatory=$true)][string]$UserUpn,
+    [Parameter(Mandatory=$true)][string]$RemotePath,
+    [Parameter(Mandatory=$true)][string]$Text
+  )
+
+  $uri = "https://graph.microsoft.com/v1.0/users/$UserUpn/drive/root:/$RemotePath:/content"
+  $bytes = [System.Text.Encoding]::UTF8.GetBytes($Text)
+  Write-Log "Ecriture Graph (marker): $RemotePath"
+  Invoke-Graph -AccessToken $AccessToken -Method PUT -Uri $uri -BodyBytes $bytes -ContentType "text/plain; charset=utf-8" | Out-Null
+}
+
+# ========================= PUBLIC: MAIN =========================
+
+function Invoke-InstaConfig {
+  <#
+    .SYNOPSIS
+      Lance le flux complet (Graph -> lecture ref/session -> marker LogPC -> reset ou raccourcis).
+    .PARAMETER IbRepository
+      Dépôt PowerShell pour le module "ib" (PSGallery par défaut).
+    .PARAMETER ForceIbUpdate
+      Force update/install du module ib.
+    .PARAMETER WhatIfMode
+      Ne modifie pas l'environnement (pas de reset, pas d'écriture marker).
+  #>
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory=$false)]
+    [string]$IbRepository = $script:IbRepositoryDefault,
+
+    [Parameter(Mandatory=$false)]
+    [switch]$ForceIbUpdate,
+
+    [Parameter(Mandatory=$false)]
+    [switch]$WhatIfMode
+  )
+
+  $refLocal = $null
+  $sessionLocal = $null
+
+  try {
+    # 0) Module ib
+    Ensure-IbModuleUpToDate -Name "ib" -Repository $IbRepository -Force:$ForceIbUpdate -WhatIfMode:$WhatIfMode
+    Import-Module ib -Force -ErrorAction Stop
+
+    # 1) Auth Graph + download JSON
+    $accessToken = Get-GraphAccessToken
+
+    Ensure-Directory -Path $script:TmpDir
+    $refLocal     = Join-Path $script:TmpDir "ref.json"
+    $sessionLocal = Join-Path $script:TmpDir "Session.json"
+
+    Download-GraphFileToLocal -AccessToken $accessToken -UserUpn $script:OneDriveUserUpn -RemotePath $script:RefRemotePath -LocalPath $refLocal
+    Download-GraphFileToLocal -AccessToken $accessToken -UserUpn $script:OneDriveUserUpn -RemotePath $script:SessionRemotePath -LocalPath $sessionLocal
+
+    $today = Get-TodayYmd
+    $tag   = Get-ServiceTag
+
+    Write-Log "Date du jour : $today"
+    Write-Log "Tag service  : $tag"
+
+    $refRoot     = Load-JsonFile -Path $refLocal
+    $sessionRoot = Load-JsonFile -Path $sessionLocal
+
+    # 2) Salle + Partage
+    $roomInfo = Get-RoomInfoFromRef -RefRoot $refRoot -ServiceTag $tag
+    $room     = $roomInfo.Room
+    $shareUrl = $roomInfo.ShareUrl
+
+    Write-Log "Salle détectée: $room"
+    if ($shareUrl) { Write-Log "URL partage salle: $shareUrl" } else { Write-Log "URL partage salle: (aucune)" "WARN" }
+
+    # 3) Session active aujourd'hui
+    $sessions = Convert-SessionsToList -SessionRoot $sessionRoot
+
+    $matching = $sessions |
+      Where-Object { $_.salle -eq $room } |
+      Where-Object { Is-DateInRange -TodayYmd $today -StartYmd $_.debut -EndYmd $_.fin } |
+      Select-Object -First 1
+
+    if (-not $matching) {
+      Write-Log "Aucune session trouvée aujourd'hui pour la salle '$room'. Fin."
+      return
+    }
+
+    $sessionId = $matching.SessionId
+    $stageCode = $matching.stage
+    $teamsUrl  = $matching.teamsMeeting
+
+    Write-Log "Session match: $sessionId (stage=$stageCode, debut=$($matching.debut), fin=$($matching.fin))"
+    if ($teamsUrl) { Write-Log "Lien Teams session: $teamsUrl" } else { Write-Log "Lien Teams session: (aucun)" "WARN" }
+
+    # 4) Marker (Graph) - même naming que ton script original
+    $safeRoom   = ($room -replace '[\\/:*?"<>|]', '_')
+    $markerName = "${tag}_${safeRoom}_${sessionId}.txt"
+
+    $logFolder = $script:LogPcRemoteFolder.TrimEnd("/")
+    $markerRemotePath = "$logFolder/$markerName"
+
+    $markerExists = Test-GraphFileExists -AccessToken $accessToken -UserUpn $script:OneDriveUserUpn -RemotePath $markerRemotePath
+
+    if ($markerExists) {
+      Write-Log "Marqueur trouvé => reset déjà fait. Création des raccourcis sur le bureau public."
+      Write-ShortcutsToPublicDesktop -ShareUrl $shareUrl -TeamsUrl $teamsUrl -Room $room -SessionId $sessionId
+      return
+    }
+
+    Write-Log "Marqueur absent => 1ère passe. Détermination action reset via ref.json."
+
+    $actions = Get-StageActionsFromRef -RefRoot $refRoot -StageCode $stageCode
+    $resetAction = $actions | Where-Object { $_ -in @("ResetIb","Reset365") } | Select-Object -First 1
+
+    if (-not $resetAction) {
+      Write-Log "Aucune action ResetIb/Reset365 définie pour le stage '$stageCode'. Fin." "WARN"
+      return
+    }
+
+    if ($WhatIfMode) {
+      Write-Log "WHATIF: j'aurais créé le marqueur: $markerRemotePath" "WARN"
+      Write-Log "WHATIF: j'aurais exécuté le reset: $resetAction" "WARN"
+      return
+    }
+
+    # Créer marqueur AVANT reset (dans OneDrive)
+    $markerText = "CREATED {0:o} COMPUTER={1} ROOM={2} SESSION={3} STAGE={4}" -f (Get-Date), $env:COMPUTERNAME, $room, $sessionId, $stageCode
+    Put-GraphTextFile -AccessToken $accessToken -UserUpn $script:OneDriveUserUpn -RemotePath $markerRemotePath -Text $markerText
+    Write-Log "Marqueur créé: $markerRemotePath"
+
+    Invoke-ResetAction -ActionName $resetAction -WhatIfMode:$false
+  }
+  catch {
+    Write-Log $_.Exception.Message "ERROR"
+    throw
+  }
+  finally {
+    # Nettoyage fichiers temp
+    try {
+      if ($refLocal -and (Test-Path -LiteralPath $refLocal)) { Remove-Item -LiteralPath $refLocal -Force -ErrorAction SilentlyContinue }
+      if ($sessionLocal -and (Test-Path -LiteralPath $sessionLocal)) { Remove-Item -LiteralPath $sessionLocal -Force -ErrorAction SilentlyContinue }
+    } catch {}
+  }
+}
+
+
 
 #######################
 #  Gestion du module  #
 #######################
+New-Alias -Name InstaConfig -Value Invoke-InstaConfig -ErrorAction SilentlyContinue
 New-Alias -Name oic -Value optimize-ibComputer -ErrorAction SilentlyContinue
 New-Alias -Name optib -Value optimize-ibComputer -ErrorAction SilentlyContinue
 New-Alias -Name ibPaint -value install-ibScreenPaint -errorAction SilentlyContinue
 New-Alias -Name Resetib -Value Reset-Ib -ErrorAction SilentlyContinue
 New-Alias -Name Reset365 -Value Reset-Office365 -ErrorAction SilentlyContinue
-Export-moduleMember -Function invoke-ibMute,get-ibComputers,invoke-ibNetCommand,stop-ibNet,new-ibTeamsShortcut,get-ibComputerInfo,optimize-ibComputer,get-ibPassword,wait-ibNetwork,write-ibLog,get-ibLog,install-ibScreenPaint,install-ibZoomit,Reset-Office365,Reset-Ib -Alias oic,optib,ibPaint,ResetIb,Reset365
+Export-moduleMember -Function invoke-ibMute,get-ibComputers,invoke-ibNetCommand,stop-ibNet,new-ibTeamsShortcut,get-ibComputerInfo,optimize-ibComputer,get-ibPassword,wait-ibNetwork,write-ibLog,get-ibLog,install-ibScreenPaint,install-ibZoomit,Reset-Office365,Reset-Ib -Alias oic,optib,ibPaint,ResetIb,Reset365,InstaConfig
 
