@@ -919,7 +919,7 @@ function Write-ShortcutsToPublicDesktop {
   }
 }
 
-# ========================= GRAPH (App-only + Cert) =========================
+# ========================= GRAPH API =========================
 
 function Ensure-MsalPs {
   if (-not (Get-Module -ListAvailable -Name MSAL.PS)) {
@@ -1007,7 +1007,7 @@ function Put-GraphTextFile {
   Invoke-Graph -AccessToken $AccessToken -Method PUT -Uri $uri -BodyBytes $bytes -ContentType "text/plain; charset=utf-8" | Out-Null
 }
 
-# ========================= PUBLIC: MAIN =========================
+# ========================= Fonction Principale =========================
 
 function Invoke-InstaConfig {
   <#
@@ -1149,5 +1149,5 @@ New-Alias -Name optib -Value optimize-ibComputer -ErrorAction SilentlyContinue
 New-Alias -Name ibPaint -value install-ibScreenPaint -errorAction SilentlyContinue
 New-Alias -Name Resetib -Value Reset-Ib -ErrorAction SilentlyContinue
 New-Alias -Name Reset365 -Value Reset-Office365 -ErrorAction SilentlyContinue
-Export-moduleMember -Function invoke-ibMute,get-ibComputers,invoke-ibNetCommand,stop-ibNet,new-ibTeamsShortcut,get-ibComputerInfo,optimize-ibComputer,get-ibPassword,wait-ibNetwork,write-ibLog,get-ibLog,install-ibScreenPaint,install-ibZoomit,Reset-Office365,Reset-Ib -Alias oic,optib,ibPaint,ResetIb,Reset365,InstaConfig
+Export-moduleMember -Function invoke-ibMute,get-ibComputers,invoke-ibNetCommand,stop-ibNet,new-ibTeamsShortcut,get-ibComputerInfo,optimize-ibComputer,get-ibPassword,wait-ibNetwork,write-ibLog,get-ibLog,install-ibScreenPaint,install-ibZoomit,Reset-Office365,Reset-Ib,Invoke-InstaConfig -Alias oic,optib,ibPaint,ResetIb,Reset365,InstaConfig
 
