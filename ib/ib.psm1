@@ -971,7 +971,7 @@ function Download-GraphFileToLocal {
     [Parameter(Mandatory=$true)][string]$LocalPath
   )
 
-  $uri = "https://graph.microsoft.com/v1.0/users/$UserUpn/drive/root:/$RemotePath:/content"
+  $uri = "https://graph.microsoft.com/v1.0/users/$UserUpn/drive/root:/${RemotePath}:/content"
   Write-Log "Téléchargement Graph: $RemotePath -> $LocalPath"
   Invoke-WebRequest -Headers @{ Authorization = "Bearer $AccessToken" } -Uri $uri -OutFile $LocalPath -ErrorAction Stop | Out-Null
 }
@@ -1001,7 +1001,7 @@ function Put-GraphTextFile {
     [Parameter(Mandatory=$true)][string]$Text
   )
 
-  $uri = "https://graph.microsoft.com/v1.0/users/$UserUpn/drive/root:/$RemotePath:/content"
+  $uri = "https://graph.microsoft.com/v1.0/users/$UserUpn/drive/root:/${RemotePath}:/content"
   $bytes = [System.Text.Encoding]::UTF8.GetBytes($Text)
   Write-Log "Ecriture Graph (marker): $RemotePath"
   Invoke-Graph -AccessToken $AccessToken -Method PUT -Uri $uri -BodyBytes $bytes -ContentType "text/plain; charset=utf-8" | Out-Null
