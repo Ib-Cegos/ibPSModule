@@ -1036,9 +1036,7 @@ function Invoke-InstaConfig {
   $sessionLocal = $null
 
   try {
-    # 0) Module ib
-    Ensure-IbModuleUpToDate -Name "ib" -Repository $IbRepository -Force:$ForceIbUpdate -WhatIfMode:$WhatIfMode
-    Import-Module ib -Force -ErrorAction Stop
+    Write-Log "Démarrage InstaConfig"
 
     # 1) Auth Graph + download JSON
     $accessToken = Get-GraphAccessToken
