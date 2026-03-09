@@ -1149,5 +1149,5 @@ New-Alias -Name optib -Value optimize-ibComputer -ErrorAction SilentlyContinue
 New-Alias -Name ibPaint -value install-ibScreenPaint -errorAction SilentlyContinue
 New-Alias -Name Resetib -Value Reset-Ib -ErrorAction SilentlyContinue
 New-Alias -Name Reset365 -Value Reset-Office365 -ErrorAction SilentlyContinue
-Export-moduleMember -Function invoke-ibMute,get-ibComputers,invoke-ibNetCommand,stop-ibNet,new-ibTeamsShortcut,get-ibComputerInfo,optimize-ibComputer,get-ibPassword,wait-ibNetwork,write-ibLog,get-ibLog,install-ibScreenPaint,install-ibZoomit,Reset-Office365,Reset-Ib,Invoke-InstaConfig -Alias oic,optib,ibPaint,ResetIb,Reset365,InstaConfig
+Export-moduleMember -Function invoke-ibMute,get-ibComputers,invoke-ibNetCommand,stop-ibNet,new-ibTeamsShortcut,get-ibComputerInfo,optimize-ibComputer,get-ibPassword,wait-ibNetwork,write-ibLog,get-ibLog,install-ibScreenPaint,install-ibZoomit,Reset-Office365,Reset-Ib,Invoke-InstaConfig,Write-Log,Ensure-Directory,Get-InstalledModuleVersion,Ensure-IbModuleUpToDate,Get-TodayYmd,Is-DateInRange,Get-ServiceTag,Load-JsonFile,Convert-SessionsToList,Get-RoomInfoFromRef,Get-StageActionsFromRef,Invoke-ResetAction,New-UrlShortcut,Write-ShortcutsToPublicDesktop,Ensure-MsalPs,Get-GraphAccessToken,Invoke-Graph,Download-GraphFileToLocal,Test-GraphFileExists,Put-GraphTextFile -Alias oic,optib,ibPaint,ResetIb,Reset365,InstaConfig
 
