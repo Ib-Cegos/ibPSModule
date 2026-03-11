@@ -29,7 +29,32 @@ FunctionsToExport = @(
 'install-ibZoomit',
 'Reset-Office365',
 'Reset-Ib',
-'Invoke-InstaConfig')
+'Invoke-InstaConfig',
+'Write-Log',
+'Ensure-Directory',
+'Get-InstalledModuleVersion',
+'Ensure-IbModuleUpToDate',
+'Get-TodayYmd',
+'Is-DateInRange',
+'Get-ServiceTag',
+'Load-JsonFile',
+'Convert-SessionsToList',
+'Get-RoomInfoFromRef',
+'Get-StageActionsFromRef',
+'Invoke-ResetAction',
+'New-UrlShortcut',
+'Write-ShortcutsToPublicDesktop',
+'Ensure-MsalPs',
+'Get-GraphAccessToken',
+'Invoke-Graph',
+'Download-GraphFileToLocal',
+'Test-GraphFileExists',
+'Put-GraphTextFile',
+'Wait-Internet',
+'Get-MarqueurSession',
+'Remove-MarqueurOutDated',
+'Remove-ExistingMarqueurs'
+)
 CmdletsToExport = @()
 VariablesToExport = '*'
 AliasesToExport = @('oic','optib','ibPaint','ResetIb','Reset365','InstaConfig')
