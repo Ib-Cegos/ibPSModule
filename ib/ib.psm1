@@ -919,6 +919,34 @@ function Write-ShortcutsToPublicDesktop {
   }
 }
 
+function Wait-Internet {
+    param(
+        [int]$TimeoutSeconds = 900,
+        [int]$RetryIntervalSeconds = 10
+    )
+
+    $stopAt = (Get-Date).AddSeconds($TimeoutSeconds)
+
+    do {
+        try {
+            $ok = Test-NetConnection -ComputerName "graph.microsoft.com" -Port 443 -InformationLevel Quiet -WarningAction SilentlyContinue
+            if ($ok) {
+                Write-Log "Connexion Internet disponible."
+                return $true
+            }
+        }
+        catch {
+        }
+
+        Write-Log "Pas d'accès Internet pour le moment, nouvelle tentative dans $RetryIntervalSeconds secondes..." "WARN"
+        Start-Sleep -Seconds $RetryIntervalSeconds
+    }
+    while ((Get-Date) -lt $stopAt)
+
+    Write-Log "Timeout atteint : pas d'accès Internet après $TimeoutSeconds secondes." "ERROR"
+    return $false
+}
+
 # ========================= GRAPH API =========================
 
 function Ensure-MsalPs {
@@ -993,6 +1021,69 @@ function Test-GraphFileExists {
   }
 }
 
+function Get-MarqueurSession {
+  param(
+    [Parameter(Mandatory=$true)][string]$AccessToken,
+    [Parameter(Mandatory=$true)][string]$UserUpn,
+    [Parameter(Mandatory=$true)][string]$RemoteFolderPath
+  )
+
+  $uri = "https://graph.microsoft.com/v1.0/users/$UserUpn/drive/root:/${RemoteFolderPath}:/children"
+  return Invoke-Graph -AccessToken $AccessToken -Method GET -Uri $uri
+}
+
+function Remove-MarqueurOutDated {
+  param(
+    [Parameter(Mandatory=$true)][string]$AccessToken,
+    [Parameter(Mandatory=$true)][string]$UserUpn,
+    [Parameter(Mandatory=$true)][string]$RemotePath
+  )
+
+  $uri = "https://graph.microsoft.com/v1.0/users/$UserUpn/drive/root:/$RemotePath"
+  Write-Log "Suppression Graph: $RemotePath"
+
+  if ($script:WhatIfMode) {
+    Write-Log "WHATIF: j'aurais supprimé $RemotePath" "WARN"
+    return
+  }
+
+  Invoke-Graph -AccessToken $AccessToken -Method DELETE -Uri $uri | Out-Null
+}
+
+function Remove-ExistingMarqueurs {
+  param(
+    [Parameter(Mandatory=$true)][string]$AccessToken,
+    [Parameter(Mandatory=$true)][string]$UserUpn,
+    [Parameter(Mandatory=$true)][string]$LogFolderPath,
+    [Parameter(Mandatory=$true)][string]$ServiceTag
+  )
+
+  $children = Get-MarqueurSession -AccessToken $AccessToken -UserUpn $UserUpn -RemoteFolderPath $LogFolderPath
+
+  if (-not $children.value) {
+    Write-Log "Aucun marqueur existant dans $LogFolderPath"
+    return
+  }
+
+  $prefix = "${ServiceTag}_"
+
+  $existingMarkers = $children.value | Where-Object {
+    $_.name -like "${prefix}*"
+  }
+
+  if (-not $existingMarkers) {
+    Write-Log "Aucun ancien marqueur trouvé pour le service tag $ServiceTag"
+    return
+  }
+
+  foreach ($marker in $existingMarkers) {
+    $remotePath = ($LogFolderPath.TrimEnd("/") + "/" + $marker.name)
+    Remove-MarqueurOutDated -AccessToken $AccessToken -UserUpn $UserUpn -RemotePath $remotePath
+  }
+
+  Write-Log ("{0} ancien(s) marqueur(s) supprimé(s) pour le service tag {1}" -f $existingMarkers.Count, $ServiceTag)
+}
+
 function Put-GraphTextFile {
   param(
     [Parameter(Mandatory=$true)][string]$AccessToken,
@@ -1037,6 +1128,11 @@ function Invoke-InstaConfig {
 
   try {
     Write-Log "Démarrage InstaConfig"
+
+    # 0) Test Réseaux
+    if (-not (Wait-Internet -TimeoutSeconds 900 -RetryIntervalSeconds 10)) {
+    exit 1
+}
 
     # 1) Auth Graph + download JSON
     $accessToken = Get-GraphAccessToken
@@ -1116,6 +1212,13 @@ function Invoke-InstaConfig {
       return
     }
 
+    # Supprimer les anciens marqueurs de ce même service tag
+    Remove-ExistingMarqueurs `
+  -AccessToken $accessToken `
+  -UserUpn $script:OneDriveUserUpn `
+  -LogFolderPath $script:LogPcRemoteFolder `
+  -ServiceTag $tag
+
     # Créer marqueur AVANT reset (dans OneDrive)
     $markerText = "CREATED {0:o} COMPUTER={1} ROOM={2} SESSION={3} STAGE={4}" -f (Get-Date), $env:COMPUTERNAME, $room, $sessionId, $stageCode
     Put-GraphTextFile -AccessToken $accessToken -UserUpn $script:OneDriveUserUpn -RemotePath $markerRemotePath -Text $markerText
@@ -1147,5 +1250,5 @@ New-Alias -Name optib -Value optimize-ibComputer -ErrorAction SilentlyContinue
 New-Alias -Name ibPaint -value install-ibScreenPaint -errorAction SilentlyContinue
 New-Alias -Name Resetib -Value Reset-Ib -ErrorAction SilentlyContinue
 New-Alias -Name Reset365 -Value Reset-Office365 -ErrorAction SilentlyContinue
-Export-moduleMember -Function invoke-ibMute,get-ibComputers,invoke-ibNetCommand,stop-ibNet,new-ibTeamsShortcut,get-ibComputerInfo,optimize-ibComputer,get-ibPassword,wait-ibNetwork,write-ibLog,get-ibLog,install-ibScreenPaint,install-ibZoomit,Reset-Office365,Reset-Ib,Invoke-InstaConfig,Write-Log,Ensure-Directory,Get-InstalledModuleVersion,Ensure-IbModuleUpToDate,Get-TodayYmd,Is-DateInRange,Get-ServiceTag,Load-JsonFile,Convert-SessionsToList,Get-RoomInfoFromRef,Get-StageActionsFromRef,Invoke-ResetAction,New-UrlShortcut,Write-ShortcutsToPublicDesktop,Ensure-MsalPs,Get-GraphAccessToken,Invoke-Graph,Download-GraphFileToLocal,Test-GraphFileExists,Put-GraphTextFile -Alias oic,optib,ibPaint,ResetIb,Reset365,InstaConfig
+Export-moduleMember -Function invoke-ibMute,get-ibComputers,invoke-ibNetCommand,stop-ibNet,new-ibTeamsShortcut,get-ibComputerInfo,optimize-ibComputer,get-ibPassword,wait-ibNetwork,write-ibLog,get-ibLog,install-ibScreenPaint,install-ibZoomit,Reset-Office365,Reset-Ib,Invoke-InstaConfig,Write-Log,Ensure-Directory,Get-InstalledModuleVersion,Ensure-IbModuleUpToDate,Get-TodayYmd,Is-DateInRange,Get-ServiceTag,Load-JsonFile,Convert-SessionsToList,Get-RoomInfoFromRef,Get-StageActionsFromRef,Invoke-ResetAction,New-UrlShortcut,Write-ShortcutsToPublicDesktop,Ensure-MsalPs,Get-GraphAccessToken,Invoke-Graph,Download-GraphFileToLocal,Test-GraphFileExists,Put-GraphTextFile,Wait-Internet,Get-MarqueurSession,Remove-MarqueurOutDated,Remove-ExistingMarqueurs -Alias oic,optib,ibPaint,ResetIb,Reset365,InstaConfig
 
