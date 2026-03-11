@@ -1075,7 +1075,7 @@ function Invoke-InstaConfig {
 
     if (-not $matching) {
       Write-Log "Aucune session trouvée aujourd'hui pour la salle '$room'. Fin."
-      return
+      exit 0
     }
 
     $sessionId = $matching.SessionId
