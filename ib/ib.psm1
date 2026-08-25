@@ -519,17 +519,6 @@ foreach ($resultat in $resultats) {
         Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command_2019" -Verb RunAs -Wait
         Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command_2019_1" -Verb RunAs -Wait
         Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command_2019_2" -Verb RunAs -Wait
-        #Affiche la pop-up de redémarrage puis redémarre au bout de 10sec
-        #10 secondes d'affichage
-        $Temps = 10
-        #contenant de la pop-up
-        $Message = "Votre machine doit redémarrer pour terminer sa configuration, merci de patienter..."
-        #Titre de la pop_up
-        $Titre = " Information importante "
-        #Création d'un objet de type pop-up
-        $Prompt = New-Object -ComObject WScript.Shell
-        #Action d'afficher la pop-up
-        $AffichageMessage = $Prompt.popup($Message, $Temps, $Titre, 16+0)
         #Redémarrer l'ordinateur
         Restart-Computer -force
    } 
@@ -543,18 +532,6 @@ foreach ($resultat in $resultats) {
         Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command2019" -Verb RunAs -Wait
         Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command2019_1" -Verb RunAs -Wait
         Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command2019_2" -Verb RunAs -Wait
-        #Affiche la pop-up de redémarrage puis redémarre au bout de 10sec
-         #Affiche la pop-up de redémarrage puis redémarre au bout de 10sec
-        #10 secondes d'affichage
-        $Temps = 10
-        #contenant de la pop-up
-        $Message = "Votre machine doit redémarrer pour terminer sa configuration, merci de patienter..."
-        #Titre de la pop_up
-        $Titre = " Information importante "
-        #Création d'un objet de type pop-up
-        $Prompt = New-Object -ComObject WScript.Shell
-        #Action d'afficher la pop-up
-        $AffichageMessage = $Prompt.popup($Message, $Temps, $Titre, 16+0)
         #Redémarrer l'ordinateur
         Restart-Computer -force
     }
@@ -604,17 +581,6 @@ foreach ($resultat in $resultats) {
         Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command_365_1" -Verb RunAs -Wait
         Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command_365_2" -Verb RunAs -Wait
         #Affiche la pop-up de redémarrage puis redémarre au bout de 10sec
-        #10 secondes d'affichage
-        $Temps = 10
-        #contenant de la pop-up
-        $Message = "Votre machine doit redémarrer pour terminer sa configuration, merci de patienter..."
-        #Titre de la pop_up
-        $Titre = " Information importante "
-        #Création d'un objet de type pop-up
-        $Prompt = New-Object -ComObject WScript.Shell
-        #Action d'afficher la pop-up
-        $AffichageMessage = $Prompt.popup($Message, $Temps, $Titre, 16+0)
-        #Redémarrer l'ordinateur
         Restart-Computer -force
    } 
 	else {
@@ -627,17 +593,6 @@ foreach ($resultat in $resultats) {
         Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command365_1" -Verb RunAs -Wait
         Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command365_2" -Verb RunAs -Wait
         #Affiche la pop-up de redémarrage puis redémarre au bout de 10sec
-        #10 secondes d'affichage
-        $Temps = 10
-        #contenant de la pop-up
-        $Message = "Votre machine doit redémarrer pour terminer sa configuration, merci de patienter..."
-        #Titre de la pop_up
-        $Titre = " Information importante "
-        #Création d'un objet de type pop-up
-        $Prompt = New-Object -ComObject WScript.Shell
-        #Action d'afficher la pop-up
-        $AffichageMessage = $Prompt.popup($Message, $Temps, $Titre, 16+0)
-        #Redémarrer l'ordinateur
         Restart-Computer -force
     }
 } 
