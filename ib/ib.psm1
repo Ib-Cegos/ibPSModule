@@ -158,6 +158,7 @@ function install-ibZoomit {
   Set-RegistryValue -Name 'ToggleKey' -value 625          #Toggle Key to [Ctrl+F2]
   Set-RegistryValue -Name 'DrawToggleKey' -value 624      #Draw Toggle Key to [Ctrl+F1]
   Set-RegistryValue -Name 'RecordToggleKey' -value 626    #Record Toggle Key to [Ctrl+F3]
+  Set-RegistryValue -Name 'SnipToggleKey' -value 236      #Snip Toggle Key to [AltGr + Shift + ;]
   if (!$noAutoStart) { Set-RegistryValue -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'ZoomIt' -Value $DestinationFile -PropertyType String } # Run On Startup via Registry
   Start-Process -FilePath $DestinationFile -NoNewWindow } #Start ZoomIt
 
